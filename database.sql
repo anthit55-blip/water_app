@@ -1,0 +1,13 @@
+create extension if not exists pgcrypto;
+create table if not exists public.customers(id uuid primary key default gen_random_uuid(),name text not null,house_no text not null,meter_no text unique not null,phone text,last_reading numeric not null default 0,created_at timestamptz default now());
+create table if not exists public.meter_readings(id uuid primary key default gen_random_uuid(),customer_id uuid references public.customers(id) on delete cascade,previous_reading numeric default 0,current_reading numeric not null,units numeric default 0,reading_date date default current_date,created_at timestamptz default now());
+create table if not exists public.bills(id uuid primary key default gen_random_uuid(),customer_id uuid references public.customers(id) on delete cascade,reading_id uuid references public.meter_readings(id) on delete set null,units numeric default 0,amount numeric(12,2) default 0,status text default 'unpaid',bill_date date default current_date,paid_at timestamptz,created_at timestamptz default now());
+create table if not exists public.finance(id uuid primary key default gen_random_uuid(),type text not null,name text not null,amount numeric(12,2) default 0,entry_date date default current_date,bill_id uuid references public.bills(id) on delete set null,created_at timestamptz default now());
+create table if not exists public.settings(id integer primary key,village_name text default 'ระบบประปาหมู่บ้าน',rate numeric(12,2) default 8,minimum numeric(12,2) default 0,updated_at timestamptz default now());
+insert into public.settings(id) values(1) on conflict(id) do nothing;
+alter table public.customers enable row level security; alter table public.meter_readings enable row level security; alter table public.bills enable row level security; alter table public.finance enable row level security; alter table public.settings enable row level security;
+create policy "auth customers" on public.customers for all to authenticated using(true) with check(true);
+create policy "auth readings" on public.meter_readings for all to authenticated using(true) with check(true);
+create policy "auth bills" on public.bills for all to authenticated using(true) with check(true);
+create policy "auth finance" on public.finance for all to authenticated using(true) with check(true);
+create policy "auth settings" on public.settings for all to authenticated using(true) with check(true);
