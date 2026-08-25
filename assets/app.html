@@ -1,0 +1,129 @@
+<!doctype html><html lang="th"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบบริหารจัดการประปาหมู่บ้าน</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#f1f5f9;color:#0f172a}
+header{background:#0f766e;color:white;padding:15px;position:sticky;top:0;z-index:10}
+nav{display:flex;gap:6px;overflow:auto;background:white;padding:8px;position:sticky;top:65px;z-index:9}
+nav button{border:0;padding:9px 12px;border-radius:8px;white-space:nowrap;font-weight:700}
+nav .on{background:#0f766e;color:white}.wrap{max-width:1200px;margin:auto;padding:12px}
+.page{display:none}.page.on{display:block}.panel,.card{background:white;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 2px 9px #0001}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.num{font-size:26px;font-weight:800;color:#0f766e}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}
+input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin:4px 0 10px}
+button{cursor:pointer}.primary{background:#0f766e;color:white;border:0;padding:10px 14px;border-radius:8px;font-weight:700}
+.secondary{background:#e2e8f0;border:0;padding:10px 14px;border-radius:8px}.danger{background:#dc2626;color:white;border:0;padding:7px 10px;border-radius:7px}
+.warn{background:#f59e0b;color:white;border:0;padding:7px 10px;border-radius:7px}.toolbar{display:flex;gap:7px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;min-width:620px}th,td{padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;text-align:left}.table{overflow:auto}
+.badge{padding:4px 7px;border-radius:7px;font-weight:700}.paid{background:#dcfce7;color:#166534}.unpaid{background:#fee2e2;color:#991b1b}
+.hidden{display:none!important}.muted{color:#64748b}#login{max-width:430px;margin:45px auto}
+.toast{position:fixed;right:12px;bottom:12px;background:#111827;color:#fff;padding:12px;border-radius:9px;z-index:50}
+</style></head><body>
+<header><b>🚰 ระบบบริหารจัดการประปาหมู่บ้าน</b><br><small id="village">ระบบออนไลน์</small></header>
+
+<section id="login" class="panel"><h2>เข้าสู่ระบบ</h2>
+<input id="email" type="email" placeholder="อีเมล"><input id="password" type="password" placeholder="รหัสผ่าน">
+<div class="toolbar"><button class="primary" onclick="login()">เข้าสู่ระบบ</button><button class="secondary" onclick="signup()">สมัครบัญชี</button></div>
+<p id="msg" class="muted"></p></section>
+
+<div id="app" class="hidden"><nav id="nav">
+<button class="on" onclick="page('dash',this)">ภาพรวม</button>
+<button onclick="page('customers',this)">ผู้ใช้น้ำ</button><button onclick="page('meters',this)">จดมิเตอร์</button>
+<button onclick="page('bills',this)">บิล/ชำระ</button><button onclick="page('finance',this)">การเงิน</button>
+<button onclick="page('reports',this)">รายงาน</button><button onclick="page('settings',this)">ตั้งค่า</button>
+<button onclick="logout()">ออก</button></nav><main class="wrap">
+
+<section id="dash" class="page on"><h2>ภาพรวม</h2><div class="cards">
+<div class="card">ผู้ใช้น้ำ<div class="num" id="cc">0</div></div><div class="card">บิลค้าง<div class="num" id="ub">0</div></div>
+<div class="card">รายรับ<div class="num" id="inc">0</div></div><div class="card">รายจ่าย<div class="num" id="exp">0</div></div>
+<div class="card">ยอดค้าง<div class="num" id="due">0</div></div></div>
+<div class="panel"><b id="conn">กำลังเชื่อมต่อ...</b><p id="sync"></p></div>
+<div class="panel"><h3>บิลล่าสุด</h3><div class="table"><table><tbody id="recent"></tbody></table></div></div></section>
+
+<section id="customers" class="page"><h2>ผู้ใช้น้ำ</h2><div class="panel"><div class="grid">
+<input id="cn" placeholder="ชื่อ-สกุล"><input id="ch" placeholder="บ้านเลขที่"><input id="cm" placeholder="เลขมิเตอร์"><input id="cp" placeholder="เบอร์โทร"></div>
+<button class="primary" onclick="addCustomer()">+ เพิ่มผู้ใช้น้ำ</button></div>
+<div class="panel"><input id="search" placeholder="ค้นหา..." oninput="renderCustomers()"><div class="table"><table><thead><tr><th>ชื่อ</th><th>บ้าน</th><th>มิเตอร์</th><th>โทร</th><th>เลขล่าสุด</th><th></th></tr></thead><tbody id="ct"></tbody></table></div></div></section>
+
+<section id="meters" class="page"><h2>จดมิเตอร์</h2><div class="panel"><div class="grid">
+<select id="mc" onchange="prev()"></select><input id="mp" readonly placeholder="ครั้งก่อน"><input id="mn" type="number" placeholder="ครั้งนี้"><input id="md" type="date">
+</div><button class="primary" onclick="reading()">บันทึกและสร้างบิล</button></div>
+<div class="panel"><div class="table"><table><tbody id="rt"></tbody></table></div></div></section>
+
+<section id="bills" class="page"><h2>บิล / รับชำระ</h2><div class="panel"><select id="bf" onchange="renderBills()"><option value="all">ทั้งหมด</option><option value="unpaid">ค้างชำระ</option><option value="paid">ชำระแล้ว</option></select></div>
+<div class="panel"><div class="table"><table><thead><tr><th>วันที่</th><th>ผู้ใช้น้ำ</th><th>หน่วย</th><th>ยอด</th><th>สถานะ</th><th></th></tr></thead><tbody id="bt"></tbody></table></div></div></section>
+
+<section id="finance" class="page"><h2>รายรับ-รายจ่าย</h2><div class="panel"><div class="grid">
+<select id="ft"><option value="income">รายรับ</option><option value="expense">รายจ่าย</option></select><input id="fn" placeholder="รายการ"><input id="fa" type="number" placeholder="จำนวนเงิน"><input id="fd" type="date"></div>
+<button class="primary" onclick="addFinance()">บันทึก</button></div><div class="panel"><div class="table"><table><tbody id="ftb"></tbody></table></div></div></section>
+
+<section id="reports" class="page"><h2>รายงาน</h2><div class="panel"><input id="rm" type="month"><div class="toolbar">
+<button class="primary" onclick="report()">สร้างรายงาน</button><button class="secondary" onclick="csv()">ส่งออก CSV</button><button class="secondary" onclick="backup()">สำรอง JSON</button></div></div><div id="rr" class="panel"></div></section>
+
+<section id="settings" class="page"><h2>ตั้งค่า</h2><div class="panel"><div class="grid">
+<input id="vn" placeholder="ชื่อประปา/หมู่บ้าน"><input id="rate" type="number" placeholder="บาท/หน่วย"><input id="min" type="number" placeholder="ขั้นต่ำ"></div>
+<button class="primary" onclick="saveSettings()">บันทึก</button></div></section>
+</main></div><div id="toast" class="toast hidden"></div>
+
+<script>
+const CONFIG={SUPABASE_URL:"ใส่-SUPABASE_URL-ที่นี่",SUPABASE_ANON_KEY:"ใส่-SUPABASE_ANON_KEY-ที่นี่"};
+let db,user,customers=[],readings=[],bills=[],finance=[],settings={rate:8,minimum:0,village_name:"ระบบประปาหมู่บ้าน"};
+const $=x=>document.getElementById(x),today=()=>new Date().toISOString().slice(0,10);
+const money=n=>Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function toast(x){$('toast').textContent=x;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2200)}
+function configured(){return CONFIG.SUPABASE_URL.startsWith('http')&&!CONFIG.SUPABASE_URL.includes('ใส่-')&&!CONFIG.SUPABASE_ANON_KEY.includes('ใส่-')}
+async function init(){
+ $('md').value=today();$('fd').value=today();$('rm').value=today().slice(0,7);
+ if(!configured()){$('msg').textContent='กรุณาใส่ Supabase URL และ Anon Key ในไฟล์ app.html';return}
+ db=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
+ const s=await db.auth.getSession();if(s.data.session){user=s.data.session.user;open()}
+ db.auth.onAuthStateChange((_e,s)=>s?open():close());
+}
+async function login(){if(!db)return init();const r=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error)$('msg').textContent=r.error.message}
+async function signup(){if(!db)return init();const r=await db.auth.signUp({email:$('email').value,password:$('password').value});$('msg').textContent=r.error?r.error.message:'สมัครสำเร็จ กรุณายืนยันอีเมลหากระบบกำหนด'}
+async function logout(){if(db)await db.auth.signOut()}function close(){$('app').classList.add('hidden');$('login').classList.remove('hidden')}
+function open(){$('login').classList.add('hidden');$('app').classList.remove('hidden');load()}
+async function load(){
+ try{
+  const q=await Promise.all(['customers','meter_readings','bills','finance'].map(t=>db.from(t).select('*')));
+  if(q.some(x=>x.error))throw(q.find(x=>x.error).error);
+  customers=q[0].data||[];readings=q[1].data||[];bills=q[2].data||[];finance=q[3].data||[];
+  const s=await db.from('settings').select('*').eq('id',1).maybeSingle();if(s.data)settings=s.data;
+  $('conn').textContent='● เชื่อมต่อฐานข้อมูลแล้ว';$('sync').textContent='ซิงก์ '+new Date().toLocaleString('th-TH');render();
+ }catch(e){$('conn').textContent='● เชื่อมต่อไม่สำเร็จ';toast(e.message)}
+}
+function page(id,b){document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');render()}
+function name(id){return customers.find(x=>x.id===id)?.name||'-'}
+function render(){dashboard();renderCustomers();renderMeters();renderBills();renderFinance();report();$('village').textContent=settings.village_name||'ระบบออนไลน์';$('vn').value=settings.village_name||'';$('rate').value=settings.rate??8;$('min').value=settings.minimum??0}
+function dashboard(){
+ $('cc').textContent=customers.length;$('ub').textContent=bills.filter(x=>x.status!=='paid').length;
+ $('inc').textContent=money(finance.filter(x=>x.type==='income').reduce((a,x)=>a+Number(x.amount),0));
+ $('exp').textContent=money(finance.filter(x=>x.type==='expense').reduce((a,x)=>a+Number(x.amount),0));
+ $('due').textContent=money(bills.filter(x=>x.status!=='paid').reduce((a,x)=>a+Number(x.amount),0));
+ $('recent').innerHTML='<tr><th>วันที่</th><th>ผู้ใช้น้ำ</th><th>หน่วย</th><th>ยอด</th><th>สถานะ</th></tr>'+bills.slice(-10).reverse().map(b=>`<tr><td>${esc(b.bill_date)}</td><td>${esc(name(b.customer_id))}</td><td>${b.units}</td><td>${money(b.amount)}</td><td>${b.status}</td></tr>`).join('')
+}
+function renderCustomers(){let q=($('search').value||'').toLowerCase();$('ct').innerHTML=customers.filter(c=>(c.name+' '+c.house_no+' '+c.meter_no).toLowerCase().includes(q)).map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.house_no)}</td><td>${esc(c.meter_no)}</td><td>${esc(c.phone||'-')}</td><td>${c.last_reading||0}</td><td><button class="danger" onclick="delCustomer('${c.id}')">ลบ</button></td></tr>`).join('')}
+async function addCustomer(){if(!$('cn').value||!$('ch').value||!$('cm').value)return toast('กรอกข้อมูลให้ครบ');let r=await db.from('customers').insert({name:$('cn').value,house_no:$('ch').value,meter_no:$('cm').value,phone:$('cp').value,last_reading:0});if(r.error)return toast(r.error.message);['cn','ch','cm','cp'].forEach(x=>$(x).value='');await load();toast('เพิ่มผู้ใช้น้ำแล้ว')}
+async function delCustomer(id){if(!confirm('ยืนยันลบ?'))return;let r=await db.from('customers').delete().eq('id',id);if(r.error)return toast(r.error.message);await load()}
+function renderMeters(){let old=$('mc').value;$('mc').innerHTML=customers.map(c=>`<option value="${c.id}">${esc(c.name)} (${esc(c.meter_no)})</option>`).join('');if(old)$('mc').value=old;prev();$('rt').innerHTML='<tr><th>วันที่</th><th>ผู้ใช้น้ำ</th><th>ก่อน</th><th>ครั้งนี้</th><th>หน่วย</th></tr>'+readings.slice(-100).reverse().map(r=>`<tr><td>${r.reading_date}</td><td>${esc(name(r.customer_id))}</td><td>${r.previous_reading}</td><td>${r.current_reading}</td><td>${r.units}</td></tr>`).join('')}
+function prev(){let c=customers.find(x=>x.id===$('mc').value);$('mp').value=c?.last_reading||0}
+async function reading(){
+ let c=customers.find(x=>x.id===$('mc').value),now=Number($('mn').value);if(!c||!Number.isFinite(now))return toast('กรอกเลขมิเตอร์');let p=Number(c.last_reading||0);if(now<p)return toast('เลขมิเตอร์น้อยกว่าครั้งก่อน');
+ let units=now-p,amount=Math.max(units*Number(settings.rate||0),Number(settings.minimum||0)),date=$('md').value||today();
+ let r=await db.from('meter_readings').insert({customer_id:c.id,previous_reading:p,current_reading:now,units,reading_date:date}).select().single();if(r.error)return toast(r.error.message);
+ let b=await db.from('bills').insert({customer_id:c.id,reading_id:r.data.id,units,amount,status:'unpaid',bill_date:date});if(b.error)return toast(b.error.message);
+ let u=await db.from('customers').update({last_reading:now}).eq('id',c.id);if(u.error)return toast(u.error.message);$('mn').value='';await load();toast('บันทึกมิเตอร์และสร้างบิลแล้ว')
+}
+function renderBills(){let f=$('bf').value||'all';$('bt').innerHTML=bills.filter(b=>f==='all'||b.status===f).map(b=>`<tr><td>${b.bill_date}</td><td>${esc(name(b.customer_id))}</td><td>${b.units}</td><td>${money(b.amount)}</td><td>${b.status==='paid'?'<span class="badge paid">ชำระแล้ว</span>':'<span class="badge unpaid">ค้างชำระ</span>'}</td><td>${b.status==='paid'?'':`<button class="primary" onclick="pay('${b.id}')">รับชำระ</button>`}</td></tr>`).join('')}
+async function pay(id){let b=bills.find(x=>x.id===id);if(!b||!confirm('รับชำระ '+money(b.amount)+' บาท?'))return;let r=await db.from('bills').update({status:'paid',paid_at:new Date().toISOString()}).eq('id',id);if(r.error)return toast(r.error.message);await db.from('finance').insert({type:'income',name:'รับชำระค่าน้ำ - '+name(b.customer_id),amount:b.amount,entry_date:today(),bill_id:id});await load();toast('รับชำระแล้ว')}
+function renderFinance(){$('ftb').innerHTML='<tr><th>วันที่</th><th>ประเภท</th><th>รายการ</th><th>จำนวน</th></tr>'+finance.slice(-200).reverse().map(f=>`<tr><td>${f.entry_date}</td><td>${f.type==='income'?'รายรับ':'รายจ่าย'}</td><td>${esc(f.name)}</td><td>${money(f.amount)}</td></tr>`).join('')}
+async function addFinance(){if(!$('fn').value||!$('fa').value)return toast('กรอกข้อมูลให้ครบ');let r=await db.from('finance').insert({type:$('ft').value,name:$('fn').value,amount:Number($('fa').value),entry_date:$('fd').value||today()});if(r.error)return toast(r.error.message);$('fn').value='';$('fa').value='';await load();toast('บันทึกแล้ว')}
+function report(){let m=$('rm').value||today().slice(0,7),f=finance.filter(x=>String(x.entry_date).startsWith(m)),i=f.filter(x=>x.type==='income').reduce((a,x)=>a+Number(x.amount),0),e=f.filter(x=>x.type==='expense').reduce((a,x)=>a+Number(x.amount),0),bs=bills.filter(x=>String(x.bill_date).startsWith(m));$('rr').innerHTML='<h3>รายงาน '+m+'</h3><div class="cards"><div class="card">รายรับ '+money(i)+'</div><div class="card">รายจ่าย '+money(e)+'</div><div class="card">บิล '+bs.length+' ใบ</div></div>'}
+async function saveSettings(){let r=await db.from('settings').upsert({id:1,village_name:$('vn').value||'ระบบประปาหมู่บ้าน',rate:Number($('rate').value)||0,minimum:Number($('min').value)||0});if(r.error)return toast(r.error.message);await load();toast('บันทึกแล้ว')}
+function dl(name,text,type){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+function csv(){let rows=[['วันที่','ผู้ใช้น้ำ','หน่วย','ยอด','สถานะ'],...bills.map(b=>[b.bill_date,name(b.customer_id),b.units,b.amount,b.status])];dl('water-bills.csv','\ufeff'+rows.map(r=>r.join(',')).join('\n'),'text/csv')}
+function backup(){dl('water-backup.json',JSON.stringify({customers,readings,bills,finance,settings},null,2),'application/json')}
+init();
+</script></body></html>
