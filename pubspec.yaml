@@ -1,0 +1,14 @@
+name: village_water_management
+description: ระบบบริหารจัดการประปาหมู่บ้านออนไลน์
+publish_to: none
+version: 2.0.0+2
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: ^4.13.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/app.html

@@ -1,17 +1,6 @@
-# water_village_bill
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# ระบบประปาหมู่บ้าน — Flutter Android V2
+เวอร์ชันเต็ม: Login, ผู้ใช้น้ำ, มิเตอร์, บิล, รับชำระ, การเงิน, รายงาน, CSV, Backup JSON, ตั้งค่า และ Supabase
+1. รัน database.sql ใน Supabase
+2. ใส่ SUPABASE_URL และ SUPABASE_ANON_KEY ใน assets/app.html
+3. flutter pub get
+4. flutter build apk --release
