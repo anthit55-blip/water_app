@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "930159490936",
+    "project_id": "water-app-1be81",
+    "storage_bucket": "water-app-1be81.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:930159490936:android:bcb41d42730c861c803a8d",
+        "android_client_info": {
+          "package_name": "com.example.water_village_bill"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDR-T7D0UAC8cFRuyxdgp0zkHKlAqacpyM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
